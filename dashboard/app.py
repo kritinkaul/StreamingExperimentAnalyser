@@ -3,7 +3,6 @@
 import sys
 from pathlib import Path
 import streamlit as st
-import duckdb
 import pandas as pd
 import json
 
@@ -11,19 +10,11 @@ import json
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
 
-from analysis.config import DUCKDB_PATH, EXPERIMENT_ID, PRIMARY_METRIC, GUARDRAIL_METRICS
-from dashboard.components.metric_cards import display_metric_card, display_summary_metrics
-from dashboard.components.charts import (
-    plot_metric_comparison,
-    plot_confidence_intervals,
-    plot_lift_summary,
-    plot_effect_sizes
-)
-from dashboard.components.recommendation import (
-    display_ship_decision,
-    display_experiment_info,
-    display_statistical_notes
-)
+# Lazy imports - only load when needed
+DUCKDB_PATH = PROJECT_ROOT / "data" / "streaming.duckdb"
+EXPERIMENT_ID = "exp_001"
+PRIMARY_METRIC = "avg_session_duration"
+GUARDRAIL_METRICS = ["skip_rate", "sessions_per_user", "retention_d1"]
 
 st.set_page_config(
     page_title="Experiment Analyzer",
@@ -61,28 +52,20 @@ def load_experiment_config():
                 'control_allocation': 0.5,
                 'variant_allocation': 0.5
             }
-        except:
+        except Exception as e:
             pass
     
-    # Fallback to database if available
-    if not DUCKDB_PATH.exists():
-        return {
-            'experiment_id': EXPERIMENT_ID,
-            'experiment_name': 'Enhanced Discovery Algorithm',
-            'start_date': '2009-03-01',
-            'end_date': '2009-04-30'
-        }
-    
-    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
-    config = conn.execute("""
-        SELECT * FROM main_seeds.experiment_config
-        WHERE experiment_id = ?
-    """, [EXPERIMENT_ID]).fetchdf()
-    conn.close()
-    
-    if len(config) == 0:
-        return None
-    return config.iloc[0].to_dict()
+    # Fallback config (no database needed for deployment)
+    return {
+        'experiment_id': EXPERIMENT_ID,
+        'experiment_name': 'Enhanced Discovery Algorithm',
+        'start_date': '2009-03-01',
+        'end_date': '2009-04-30',
+        'primary_metric': 'avg_session_duration',
+        'guardrail_metrics': 'skip_rate,sessions_per_user,retention_d1',
+        'control_allocation': 0.5,
+        'variant_allocation': 0.5
+    }
 
 
 @st.cache_data
@@ -100,6 +83,8 @@ def load_experiment_results():
 @st.cache_data
 def load_user_metrics_from_db():
     """Load user metrics directly from database."""
+    import duckdb
+    
     if not DUCKDB_PATH.exists():
         # For demo/deployment without database
         return pd.DataFrame({
@@ -216,6 +201,10 @@ def main():
 
 def display_overview_page(config, results):
     """Display overview page."""
+    from dashboard.components.recommendation import display_experiment_info
+    from dashboard.components.metric_cards import display_summary_metrics
+    from dashboard.components.charts import plot_lift_summary
+    
     st.header("Experiment Overview")
     
     # Experiment info
@@ -223,7 +212,7 @@ def display_overview_page(config, results):
     
     # Check if results exist
     if results is None:
-        st.warning("⚠️ Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
+        st.warning("Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
         return
     
     # Summary metrics
@@ -243,20 +232,27 @@ def display_overview_page(config, results):
     st.markdown(f"**Confidence:** {results['decision']['confidence']}")
     
     # Visualizations
-    st.markdown("## 📈 Metric Comparisons")
+    st.markdown("## Metric Comparisons")
     plot_lift_summary(results['metrics'])
 
 
 def display_metrics_page(results):
     """Display detailed metrics analysis page."""
+    from dashboard.components.charts import (
+        plot_metric_comparison,
+        plot_confidence_intervals,
+        plot_effect_sizes
+    )
+    from dashboard.components.metric_cards import display_metric_card
+    
     st.header("Detailed Metrics Analysis")
     
     if results is None:
-        st.warning("⚠️ Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
+        st.warning("Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
         return
     
     # Tabs for different views
-    tab1, tab2, tab3 = st.tabs(["📊 Comparison", "📉 Confidence Intervals", "📏 Effect Sizes"])
+    tab1, tab2, tab3 = st.tabs(["Comparison", "Confidence Intervals", "Effect Sizes"])
     
     with tab1:
         st.markdown("### Metric Comparison")
@@ -330,10 +326,15 @@ def display_metrics_page(results):
 
 def display_decision_page(results):
     """Display ship decision page."""
+    from dashboard.components.recommendation import (
+        display_ship_decision,
+        display_statistical_notes
+    )
+    
     st.header("Ship / Don't Ship Decision")
     
     if results is None:
-        st.warning("⚠️ Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
+        st.warning("Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
         return
     
     # Display decision
