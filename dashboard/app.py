@@ -1,10 +1,14 @@
 """Streamlit dashboard for A/B test results."""
 
+print("APP FILE STARTED")
+
 import sys
 from pathlib import Path
 import streamlit as st
 import pandas as pd
 import json
+
+print("STREAMLIT LOADED")
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -16,12 +20,16 @@ EXPERIMENT_ID = "exp_001"
 PRIMARY_METRIC = "avg_session_duration"
 GUARDRAIL_METRICS = ["skip_rate", "sessions_per_user", "retention_d1"]
 
+print("SETTING PAGE CONFIG")
+
 st.set_page_config(
     page_title="Experiment Analyzer",
     page_icon="🎵",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+print("PAGE CONFIG SET")
 
 # Simple styling
 st.markdown("""
@@ -31,6 +39,8 @@ st.markdown("""
     .stRadio > label {color: #1DB954;}
 </style>
 """, unsafe_allow_html=True)
+
+print("STYLING APPLIED")
 
 
 @st.cache_data
@@ -137,12 +147,14 @@ def check_data_availability():
 
 def main():
     """Main dashboard application."""
+    print("MAIN FUNCTION CALLED")
     
     col1, col2 = st.columns([3, 1])
     with col1:
         st.title("Streaming Experiment Analyzer")
         st.markdown("A/B Testing Platform for Product Features")
     
+    print("TITLE RENDERED")
     st.markdown("---")
     
     # Check data availability
