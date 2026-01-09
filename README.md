@@ -227,3 +227,18 @@ streamlit run dashboard/app.py
 # Or run the dashboard directly (uses pre-computed results)
 streamlit run dashboard/app.py
 ```
+
+<img width="1440" height="900" alt="Screenshot 2026-01-10 at 12 37 30 AM" src="https://github.com/user-attachments/assets/c96c0835-acc0-4171-90dd-bbdd245dc14d" />
+
+
+<img width="1440" height="900" alt="Screenshot 2026-01-10 at 12 37 11 AM" src="https://github.com/user-attachments/assets/43418136-f1ba-42bb-932a-b0d38bfd529c" />
+
+<img width="1440" height="900" alt="Screenshot 2026-01-10 at 12 36 57 AM" src="https://github.com/user-attachments/assets/262c7276-91db-4f82-809f-95fe4b0fd047" />
+
+<img width="1440" height="900" alt="Screenshot 2026-01-10 at 12 36 49 AM" src="https://github.com/user-attachments/assets/9fb809c2-242d-4955-8b92-a1c408181196" />
+
+
+
+
+
+
