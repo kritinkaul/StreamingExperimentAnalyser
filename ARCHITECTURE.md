@@ -234,10 +234,29 @@ Dashboard Visualization
 | Analysis | ~10 sec | Statistical tests |
 | Dashboard Load | <1 sec | Cached queries |
 
-**Scalability:**
-- Handles 19M events on laptop
-- Could scale to 100M+ with DuckDB optimization
-- Production would use Snowflake/BigQuery
+## Production Scaling
+
+This demo runs locally for portability. In production at Spotify scale:
+
+| Demo (Local) | Production (Spotify) |
+|--------------|---------------------|
+| DuckDB | BigQuery / Iceberg on GCS |
+| dbt | dbt + Scio (Apache Beam) for heavy transforms |
+| Python scripts | Flyte workflows for orchestration |
+| Manual trigger | Airflow/Flyte scheduled DAGs |
+| 19M events | Billions of events/day |
+
+**Scio** (Spotify's Scala wrapper for Apache Beam) would handle:
+- Streaming ingestion from Kafka
+- Distributed sessionization across 1000s of workers
+- Real-time experiment metric updates
+
+**Flyte** would orchestrate:
+- Daily pipeline runs
+- Dependency management between jobs
+- Retry logic and alerting
+
+The core logic (sessionization, experiment assignment, statistical tests) remains the same.
 
 ## Security & Privacy
 

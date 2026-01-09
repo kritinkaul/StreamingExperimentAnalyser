@@ -1,14 +1,15 @@
-"""Streamlit dashboard for A/B test results."""
-
-print("APP FILE STARTED")
+"""
+Streamlit dashboard for A/B experiment analysis.
+Built for analyzing music streaming feature experiments.
+"""
 
 import sys
 from pathlib import Path
 import streamlit as st
 import pandas as pd
 import json
-
-print("STREAMLIT LOADED")
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -20,27 +21,40 @@ EXPERIMENT_ID = "exp_001"
 PRIMARY_METRIC = "avg_session_duration"
 GUARDRAIL_METRICS = ["skip_rate", "sessions_per_user", "retention_d1"]
 
-print("SETTING PAGE CONFIG")
-
 st.set_page_config(
-    page_title="Experiment Analyzer",
+    page_title="Streaming Experiment Analyzer",
     page_icon="🎵",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-print("PAGE CONFIG SET")
-
-# Simple styling
+# Spotify-inspired styling
 st.markdown("""
 <style>
-    .main > div {padding-top: 1rem;}
-    [data-testid="stSidebar"] {background-color: #191414;}
-    .stRadio > label {color: #1DB954;}
+.stApp {
+    background-color: #121212;
+    color: #FFFFFF;
+}
+.stSidebar {
+    background-color: #191414;
+}
+.stSidebar .stButton > button {
+    color: #FFFFFF;
+    background-color: #1DB954;
+    border-radius: 20px;
+    border: none;
+}
+.stSidebar .stButton > button:hover {
+    background-color: #1ED760;
+}
+.metric-card {
+    background-color: #282828;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 10px 0;
+}
 </style>
 """, unsafe_allow_html=True)
-
-print("STYLING APPLIED")
 
 
 @st.cache_data
@@ -146,15 +160,11 @@ def check_data_availability():
 
 
 def main():
-    """Main dashboard application."""
-    print("MAIN FUNCTION CALLED")
+    """Main application entry point."""
     
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.title("Streaming Experiment Analyzer")
-        st.markdown("A/B Testing Platform for Product Features")
-    
-    print("TITLE RENDERED")
+    # Header
+    st.title("🎵 Streaming Experiment Analyzer")
+    st.markdown("**A/B Testing Platform for Music Product Features**")
     st.markdown("---")
     
     # Check data availability
@@ -169,49 +179,51 @@ def main():
         st.error("⚠️ Experiment configuration not found. Please run `dbt seed`.")
         return
     
-    # Sidebar
+    # Sidebar navigation
     with st.sidebar:
-        # Logo/header
         st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="#1DB954">
-                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-            </svg>
-            <h2 style="color: #1DB954; margin-top: 10px;">Experiment Analyzer</h2>
+            <img src="https://www.scdn.co/i/_global/favicon.png" style="width: 40px; height: 40px;">
+            <h2 style="color: #1DB954; margin-top: 10px;">Analytics Dashboard</h2>
         </div>
         """, unsafe_allow_html=True)
         
         st.markdown("---")
         
         page = st.radio(
-            "Navigation",
-            ["Overview", "Metrics Analysis", "Ship Decision", "Data Explorer"]
+            "Navigate to:",
+            ["📊 Overview", "📈 Metrics Analysis", "🚀 Ship Decision", "🔍 Data Explorer"],
+            format_func=lambda x: x.split(" ", 1)[1]
         )
         
         st.markdown("---")
-        st.markdown("**Experiment:** " + EXPERIMENT_ID)
-        st.markdown(f"{config['start_date']} to {config['end_date']}")
+        st.info(f"**Experiment:** {EXPERIMENT_ID}")
+        st.info(f"**Period:** {config['start_date']} to {config['end_date']}")
         
         if results:
             st.markdown("---")
             primary = results['metrics'][PRIMARY_METRIC]
+            lift_pct = primary['relative_lift'] * 100
             st.metric(
-                "Primary Lift",
-                f"{primary['relative_lift']*100:+.2f}%"
+                "Primary Metric Lift",
+                f"{lift_pct:+.2f}%",
+                delta=f"p-value: {primary['p_value']:.4f}"
             )
     
-    # Main content
-    if page == "Overview":
-        display_overview_page(config, results)
-    elif page == "Metrics Analysis":
-        display_metrics_page(results)
-    elif page == "Ship Decision":
-        display_decision_page(results)
-    elif page == "Data Explorer":
-        display_explorer_page()
+    # Main content area
+    page_clean = page.split(" ", 1)[1] if " " in page else page
+    
+    if "Overview" in page:
+        show_overview_page(config, results)
+    elif "Metrics" in page:
+        show_metrics_page(results)
+    elif "Ship" in page:
+        show_decision_page(results)
+    elif "Data" in page:
+        show_data_explorer()
 
 
-def display_overview_page(config, results):
+def show_overview_page(config, results):
     """Display overview page."""
     from dashboard.components.recommendation import display_experiment_info
     from dashboard.components.metric_cards import display_summary_metrics
@@ -248,7 +260,7 @@ def display_overview_page(config, results):
     plot_lift_summary(results['metrics'])
 
 
-def display_metrics_page(results):
+def show_metrics_page(results):
     """Display detailed metrics analysis page."""
     from dashboard.components.charts import (
         plot_metric_comparison,
@@ -336,7 +348,7 @@ def display_metrics_page(results):
         """)
 
 
-def display_decision_page(results):
+def show_decision_page(results):
     """Display ship decision page."""
     from dashboard.components.recommendation import (
         display_ship_decision,
@@ -356,7 +368,7 @@ def display_decision_page(results):
     display_statistical_notes()
 
 
-def display_explorer_page():
+def show_data_explorer():
     """Display raw data explorer page."""
     st.header("Data Explorer")
     
