@@ -1,9 +1,10 @@
-# Dashboard dependencies only (dbt not needed for deployment)
+# Core dependencies
 streamlit==1.31.0
 pandas==2.1.4
 numpy==1.26.3
 plotly==5.18.0
-altair==5.2.0
 scipy==1.11.4
 duckdb==0.10.0
-python-dateutil==2.8.2
+
+# dbt (for data transformations)
+dbt-duckdb==1.7.0

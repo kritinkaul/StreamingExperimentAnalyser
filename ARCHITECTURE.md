@@ -227,6 +227,8 @@ Dashboard Visualization
 
 ## Performance Characteristics
 
+This project is optimized for local development and analysis:
+
 | Operation | Time | Notes |
 |-----------|------|-------|
 | Data Load | ~2 min | 19M records from TSV |
@@ -234,36 +236,15 @@ Dashboard Visualization
 | Analysis | ~10 sec | Statistical tests |
 | Dashboard Load | <1 sec | Cached queries |
 
-## Production Scaling
+## Local Development
 
-This demo runs locally for portability. In production at Spotify scale:
+This project runs entirely locally with no external dependencies:
 
-| Demo (Local) | Production (Spotify) |
-|--------------|---------------------|
-| DuckDB | BigQuery / Iceberg on GCS |
-| dbt | dbt + Scio (Apache Beam) for heavy transforms |
-| Python scripts | Flyte workflows for orchestration |
-| Manual trigger | Airflow/Flyte scheduled DAGs |
-| 19M events | Billions of events/day |
-
-**Scio** (Spotify's Scala wrapper for Apache Beam) would handle:
-- Streaming ingestion from Kafka
-- Distributed sessionization across 1000s of workers
-- Real-time experiment metric updates
-
-**Flyte** would orchestrate:
-- Daily pipeline runs
-- Dependency management between jobs
-- Retry logic and alerting
-
-The core logic (sessionization, experiment assignment, statistical tests) remains the same.
-
-## Security & Privacy
-
-- **Local only** (no external connections)
-- **Anonymized data** (Last.fm userids are hashed)
+- **No cloud services required**
+- **Embedded database** (DuckDB)
+- **Local file storage**
+- **Anonymized dataset** (Last.fm userids are hashed)
 - **No PII** in dataset
-- **Read-only** dashboard (no writes)
 
 ## Testing Strategy
 

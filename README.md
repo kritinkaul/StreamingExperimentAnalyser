@@ -69,9 +69,11 @@ Raw Events → Staging (clean, assign variants) → Marts (sessions, user metric
 - Python 3.9+
 - ~500 MB disk space
 
-### 1. Setup Environment
+### 1. Clone and Setup Environment
 
 ```bash
+git clone <repository-url>
+cd StreamingExperimentAnalyser
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -213,12 +215,15 @@ Python, dbt, DuckDB, Streamlit, pandas, scipy
 
 Dataset: Last.fm 1K Users by Òscar Celma
 
-## Quick Reference
+## Quick Start
 
 ```bash
 # Full pipeline
 python scripts/load_data.py
 cd dbt_project && dbt seed && dbt run && cd ..
 python analysis/experiment_analysis.py
+streamlit run dashboard/app.py
+
+# Or run the dashboard directly (uses pre-computed results)
 streamlit run dashboard/app.py
 ```
