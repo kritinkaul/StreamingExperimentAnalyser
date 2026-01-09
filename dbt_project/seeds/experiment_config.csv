@@ -1,0 +1,2 @@
+experiment_id,experiment_name,start_date,end_date,primary_metric,guardrail_metrics,control_allocation,variant_allocation
+exp_001,Enhanced Discovery Algorithm,2009-03-01,2009-04-30,avg_session_duration,"skip_rate,sessions_per_user,retention_d1",0.5,0.5

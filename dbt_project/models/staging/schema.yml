@@ -1,0 +1,30 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: scrobbles_raw
+
+models:
+  - name: stg_scrobbles
+    description: "Cleaned scrobbles with play duration and skip detection"
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: played_at
+        tests:
+          - not_null
+
+  - name: stg_experiment_assignment
+    description: "User variant assignments"
+    columns:
+      - name: user_id
+        tests:
+          - unique
+          - not_null
+      - name: experiment_variant
+        tests:
+          - accepted_values:
+              values: ['control', 'variant_b']

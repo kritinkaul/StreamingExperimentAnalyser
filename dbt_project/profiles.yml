@@ -1,0 +1,7 @@
+streaming_experiments:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../data/streaming.duckdb
+      threads: 4

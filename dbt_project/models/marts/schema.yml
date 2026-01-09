@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: dim_sessions
+    description: "Listening sessions (30-min inactivity threshold)"
+    columns:
+      - name: session_id
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_user_metrics
+    description: "User-level metrics"
+    columns:
+      - name: user_id
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_experiment_results
+    description: "Experiment results by variant"
