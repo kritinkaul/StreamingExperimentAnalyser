@@ -1,21 +1,14 @@
-"""
-Streamlit dashboard for A/B experiment analysis.
-Built for analyzing music streaming feature experiments.
-"""
-
 import sys
 from pathlib import Path
 import streamlit as st
 import pandas as pd
 import json
-import plotly.express as px
-import plotly.graph_objects as go
 
-# Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
 
-# Lazy imports - only load when needed
+from analysis.config import CONFIDENCE_LEVEL
+
 DUCKDB_PATH = PROJECT_ROOT / "data" / "streaming.duckdb"
 EXPERIMENT_ID = "exp_001"
 PRIMARY_METRIC = "avg_session_duration"
@@ -23,63 +16,17 @@ GUARDRAIL_METRICS = ["skip_rate", "sessions_per_user", "retention_d1"]
 
 st.set_page_config(
     page_title="Streaming Experiment Analyzer",
-    page_icon="🎵",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Spotify-inspired styling
-st.markdown("""
-<style>
-.stApp {
-    background-color: #121212;
-    color: #FFFFFF;
-}
-.stSidebar {
-    background-color: #191414;
-}
-.stSidebar .stButton > button {
-    color: #FFFFFF;
-    background-color: #1DB954;
-    border-radius: 20px;
-    border: none;
-}
-.stSidebar .stButton > button:hover {
-    background-color: #1ED760;
-}
-.metric-card {
-    background-color: #282828;
-    padding: 20px;
-    border-radius: 10px;
-    margin: 10px 0;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown("""<style>
+.stApp { background-color: #121212; color: #FFFFFF; }
+.stSidebar { background-color: #191414; }
+</style>""", unsafe_allow_html=True)
 
 
 @st.cache_data
 def load_experiment_config():
-    """Load experiment configuration."""
-    # Try loading from results JSON first (for deployment)
-    results_path = PROJECT_ROOT / "data" / "experiment_results.json"
-    if results_path.exists():
-        try:
-            with open(results_path, 'r') as f:
-                data = json.load(f)
-            return {
-                'experiment_id': data.get('experiment_id', EXPERIMENT_ID),
-                'experiment_name': 'Enhanced Discovery Algorithm',
-                'start_date': '2009-03-01',
-                'end_date': '2009-04-30',
-                'primary_metric': 'avg_session_duration',
-                'guardrail_metrics': 'skip_rate,sessions_per_user,retention_d1',
-                'control_allocation': 0.5,
-                'variant_allocation': 0.5
-            }
-        except Exception as e:
-            pass
-    
-    # Fallback config (no database needed for deployment)
     return {
         'experiment_id': EXPERIMENT_ID,
         'experiment_name': 'Enhanced Discovery Algorithm',
@@ -94,96 +41,59 @@ def load_experiment_config():
 
 @st.cache_data
 def load_experiment_results():
-    """Load pre-computed experiment results from JSON."""
     results_path = PROJECT_ROOT / "data" / "experiment_results.json"
-    
     if not results_path.exists():
         return None
-    
-    with open(results_path, 'r') as f:
+    with open(results_path) as f:
         return json.load(f)
 
 
 @st.cache_data
 def load_user_metrics_from_db():
-    """Load user metrics directly from database."""
     import duckdb
-    
     if not DUCKDB_PATH.exists():
-        # For demo/deployment without database
-        return pd.DataFrame({
-            'experiment_variant': ['Demo mode - database not available'],
-            'user_id': [''],
-            'avg_session_duration': [0],
-            'avg_tracks_per_session': [0],
-            'avg_skip_rate': [0],
-            'sessions_per_user': [0],
-            'retention_d1': [False],
-            'artists_per_session': [0]
-        })
-    
+        return None
     conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
-    
     df = conn.execute("""
-        SELECT
-            experiment_variant,
-            user_id,
-            avg_session_duration,
-            avg_tracks_per_session,
-            avg_skip_rate,
-            total_sessions as sessions_per_user,
-            retention_d1,
-            avg_unique_artists_per_session as artists_per_session
+        SELECT experiment_variant, user_id, avg_session_duration,
+               avg_tracks_per_session, avg_skip_rate,
+               total_sessions as sessions_per_user, retention_d1,
+               avg_unique_artists_per_session as artists_per_session
         FROM main_marts.fct_user_metrics
     """).fetchdf()
-    
     conn.close()
     return df
 
 
 def check_data_availability():
-    """Check if required data is available."""
     results_path = PROJECT_ROOT / "data" / "experiment_results.json"
-    
     if not results_path.exists():
-        st.error("Analysis results not found!")
-        st.markdown("""
-        ### Setup Required
-        Run the analysis pipeline:
-        1. `python scripts/load_data.py`
-        2. `cd dbt_project && dbt seed && dbt run`
-        3. `python analysis/experiment_analysis.py`
-        """)
+        st.error("Analysis results not found. Run: `python analysis/experiment_analysis.py`")
         return False
-    
     return True
 
 
 def main():
-    """Main application entry point."""
-    
-    # Header
-    st.title("🎵 Streaming Experiment Analyzer")
+    st.title("Streaming Experiment Analyzer")
     st.markdown("**A/B Testing Platform for Music Product Features**")
     st.markdown("---")
     
-    # Check data availability
     if not check_data_availability():
         return
     
-    # Load data
     config = load_experiment_config()
     results = load_experiment_results()
     
-    if config is None:
-        st.error("⚠️ Experiment configuration not found. Please run `dbt seed`.")
+    if not config:
+        st.error("Configuration not found.")
         return
-    
-    # Sidebar navigation
     with st.sidebar:
         st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
-            <img src="https://www.scdn.co/i/_global/favicon.png" style="width: 40px; height: 40px;">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="12" fill="#1DB954"/>
+                <path d="M17.5 10.4C14.4 8.5 9.4 8.3 6.7 9.2C6.3 9.3 5.9 9.1 5.8 8.7C5.7 8.3 5.9 7.9 6.3 7.8C9.4 6.8 14.8 7 18.3 9.1C18.7 9.3 18.8 9.8 18.6 10.2C18.4 10.5 17.9 10.6 17.5 10.4ZM17.4 13.1C17.2 13.4 16.8 13.5 16.5 13.3C13.9 11.7 10.1 11.3 6.8 12.3C6.4 12.4 6 12.2 5.9 11.8C5.8 11.4 6 11 6.4 10.9C10.1 9.8 14.3 10.3 17.2 12.1C17.5 12.3 17.6 12.7 17.4 13.1ZM16.4 15.7C16.2 16 15.9 16.1 15.6 15.9C13.4 14.5 10.6 14.2 6.9 15C6.6 15.1 6.3 14.9 6.2 14.6C6.1 14.3 6.3 14 6.6 13.9C10.6 13.1 13.7 13.4 16.1 15C16.4 15.2 16.5 15.5 16.4 15.7Z" fill="white"/>
+            </svg>
             <h2 style="color: #1DB954; margin-top: 10px;">Analytics Dashboard</h2>
         </div>
         """, unsafe_allow_html=True)
@@ -192,8 +102,7 @@ def main():
         
         page = st.radio(
             "Navigate to:",
-            ["📊 Overview", "📈 Metrics Analysis", "🚀 Ship Decision", "🔍 Data Explorer"],
-            format_func=lambda x: x.split(" ", 1)[1]
+            ["Overview", "Metrics Analysis", "Ship Decision", "Data Explorer"]
         )
         
         st.markdown("---")
@@ -210,9 +119,6 @@ def main():
                 delta=f"p-value: {primary['p_value']:.4f}"
             )
     
-    # Main content area
-    page_clean = page.split(" ", 1)[1] if " " in page else page
-    
     if "Overview" in page:
         show_overview_page(config, results)
     elif "Metrics" in page:
@@ -224,44 +130,37 @@ def main():
 
 
 def show_overview_page(config, results):
-    """Display overview page."""
     from dashboard.components.recommendation import display_experiment_info
     from dashboard.components.metric_cards import display_summary_metrics
     from dashboard.components.charts import plot_lift_summary
     
     st.header("Experiment Overview")
-    
-    # Experiment info
     display_experiment_info(EXPERIMENT_ID, config)
     
-    # Check if results exist
-    if results is None:
-        st.warning("Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
+    if not results:
+        st.warning("Run analysis first: `python analysis/experiment_analysis.py`")
         return
     
-    # Summary metrics
     display_summary_metrics(results['metrics'])
     
-    # Quick decision preview
     st.markdown("## Decision Preview")
     decision = results['decision']['decision']
-    
-    if 'SHIP' in decision and '✅' in decision:
+    if decision == 'SHIP':
         st.success(f"**Recommendation:** {decision}")
-    elif '❌' in decision:
-        st.error(f"**Recommendation:** {decision}")
+    elif 'DON\'T SHIP' in decision or "DON'T SHIP" in decision:
+        if results['decision']['confidence'] == 'HIGH':
+            st.error(f"**Recommendation:** {decision}")
+        else:
+            st.warning(f"**Recommendation:** {decision}")
     else:
         st.warning(f"**Recommendation:** {decision}")
     
     st.markdown(f"**Confidence:** {results['decision']['confidence']}")
-    
-    # Visualizations
     st.markdown("## Metric Comparisons")
     plot_lift_summary(results['metrics'])
 
 
 def show_metrics_page(results):
-    """Display detailed metrics analysis page."""
     from dashboard.components.charts import (
         plot_metric_comparison,
         plot_confidence_intervals,
@@ -271,21 +170,17 @@ def show_metrics_page(results):
     
     st.header("Detailed Metrics Analysis")
     
-    if results is None:
-        st.warning("Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
+    if not results:
+        st.warning("Run analysis first: `python analysis/experiment_analysis.py`")
         return
     
-    # Tabs for different views
     tab1, tab2, tab3 = st.tabs(["Comparison", "Confidence Intervals", "Effect Sizes"])
     
     with tab1:
         st.markdown("### Metric Comparison")
         plot_metric_comparison(results['metrics'])
-        
-        # Detailed cards
         st.markdown("### Detailed Breakdown")
         
-        # Primary metric first
         primary_result = results['metrics'][PRIMARY_METRIC]
         display_metric_card(
             PRIMARY_METRIC.replace('_', ' ').title(),
@@ -297,7 +192,6 @@ def show_metrics_page(results):
             is_primary=True
         )
         
-        # Guardrail metrics
         st.markdown("### Guardrail Metrics")
         for metric in GUARDRAIL_METRICS:
             if metric in results['metrics']:
@@ -313,113 +207,103 @@ def show_metrics_page(results):
                 )
     
     with tab2:
-        st.markdown("### 95% Confidence Intervals")
-        
-        # Metric selector
+        ci_percent = int(CONFIDENCE_LEVEL * 100)
+        st.markdown(f"### {ci_percent}% Confidence Intervals")
         metric_options = list(results['metrics'].keys())
         selected_metric = st.selectbox(
-            "Select metric to visualize:",
+            "Select metric:",
             metric_options,
             format_func=lambda x: x.replace('_', ' ').title()
         )
-        
         plot_confidence_intervals(results['metrics'], selected_metric)
-        
-        # Interpretation
-        result = results['metrics'][selected_metric]
-        st.markdown("#### Interpretation")
-        if result['variant_ci_lower'] > result['control_ci_upper']:
-            st.success("✅ Confidence intervals don't overlap - strong evidence of difference")
-        elif result['variant_ci_upper'] < result['control_ci_lower']:
-            st.error("❌ Variant is significantly worse than control")
-        else:
-            st.info("ℹ️ Confidence intervals overlap - difference may not be significant")
     
     with tab3:
         st.markdown("### Effect Sizes (Cohen's d)")
         plot_effect_sizes(results['metrics'])
-        
-        st.markdown("""
-        **Cohen's d Interpretation:**
-        - < 0.2: Negligible effect
-        - 0.2 - 0.5: Small effect
-        - 0.5 - 0.8: Medium effect
-        - > 0.8: Large effect
-        """)
 
 
 def show_decision_page(results):
-    """Display ship decision page."""
-    from dashboard.components.recommendation import (
-        display_ship_decision,
-        display_statistical_notes
-    )
+    from dashboard.components.recommendation import display_ship_decision, display_statistical_notes
     
     st.header("Ship / Don't Ship Decision")
     
-    if results is None:
-        st.warning("Statistical analysis not yet run. Please run: `python analysis/experiment_analysis.py`")
+    if not results:
+        st.warning("Run analysis first: `python analysis/experiment_analysis.py`")
         return
     
-    # Display decision
     display_ship_decision(results['decision'])
-    
-    # Statistical notes
     display_statistical_notes()
 
 
 def show_data_explorer():
-    """Display raw data explorer page."""
     st.header("Data Explorer")
     
-    if not DUCKDB_PATH.exists():
-        st.info("📊 Data Explorer is only available when running locally with the full database.")
-        st.markdown("""
-        This demo uses pre-computed results. To explore the raw data:
-        
-        1. Clone the repository
-        2. Follow the setup instructions in README
-        3. Run the full pipeline locally
-        """)
-        return
-    
-    # Load data
     df = load_user_metrics_from_db()
     
-    st.markdown(f"**Total Users:** {len(df):,}")
-    
-    # Group selector
-    group = st.selectbox(
-        "Select group:",
-        ["All", "Control", "Variant B"]
-    )
-    
-    if group == "Control":
-        df_filtered = df[df['experiment_variant'] == 'control']
-    elif group == "Variant B":
-        df_filtered = df[df['experiment_variant'] == 'variant_b']
+    if df is not None:
+        st.markdown(f"**Total Users:** {len(df):,}")
+        
+        group = st.selectbox("Select group:", ["All", "Control", "Variant B"])
+        
+        if group == "Control":
+            df_filtered = df[df['experiment_variant'] == 'control']
+        elif group == "Variant B":
+            df_filtered = df[df['experiment_variant'] == 'variant_b']
+        else:
+            df_filtered = df
+        
+        st.markdown("### Summary Statistics")
+        st.dataframe(df_filtered.describe(), use_container_width=True)
+        
+        st.markdown("### Raw Data")
+        st.dataframe(df_filtered.head(100), use_container_width=True)
+        
+        csv = df_filtered.to_csv(index=False)
+        st.download_button(
+            label="Download CSV",
+            data=csv,
+            file_name=f"experiment_data_{group.lower().replace(' ', '_')}.csv",
+            mime="text/csv"
+        )
     else:
-        df_filtered = df
-    
-    # Display statistics
-    st.markdown("### Summary Statistics")
-    st.dataframe(df_filtered.describe())
-    
-    # Display raw data
-    st.markdown("### Raw Data")
-    st.dataframe(
-        df_filtered.head(100),
-        use_container_width=True
-    )
-    
-    # Download button
-    csv = df_filtered.to_csv(index=False)
-    st.download_button(
-        label="📥 Download Full Data (CSV)",
-        data=csv,
-        file_name=f"experiment_data_{group.lower().replace(' ', '_')}.csv",
-        mime="text/csv"
-    )
+        results = load_experiment_results()
+        if not results:
+            st.error("No data available.")
+            return
+        
+        metrics_data = results['metrics']
+        summary_rows = []
+        
+        for metric_name, metric_data in metrics_data.items():
+            summary_rows.append({
+                'Metric': metric_name.replace('_', ' ').title(),
+                'Control Mean': f"{metric_data['control_mean']:.2f}",
+                'Variant Mean': f"{metric_data['variant_mean']:.2f}",
+                'Relative Lift': f"{metric_data['relative_lift']*100:+.2f}%",
+                'P-Value': f"{metric_data['p_value']:.4f}",
+                'Significant': metric_data['is_significant'],
+                'Control N': metric_data['sample_size_control'],
+                'Variant N': metric_data['sample_size_variant']
+            })
+        
+        df = pd.DataFrame(summary_rows)
+        
+        st.markdown("### Metrics Summary")
+        st.dataframe(df, use_container_width=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Control Users", df['Control N'].iloc[0])
+        with col2:
+            st.metric("Variant Users", df['Variant N'].iloc[0])
+        
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="Download Summary CSV",
+            data=csv,
+            file_name="experiment_summary.csv",
+            mime="text/csv"
+        )
 
 
 if __name__ == "__main__":

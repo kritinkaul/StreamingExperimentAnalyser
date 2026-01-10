@@ -149,7 +149,7 @@ Sessions use 30-minute inactivity threshold.
 
 ### Statistical Methodology
 
-Uses two-sample t-tests with α=0.05 for primary metric and α=0.10 for guardrails. Also computes Cohen's d for effect size and 95% confidence intervals.
+Uses two-sample t-tests with α=0.05 for primary metric and α=0.10 for guardrails. Also computes Cohen's d for effect size and confidence intervals (default 95%, configurable in `analysis/config.py`).
 
 **Ship Decision:**
 - Primary metric must show >2% lift with p<0.05

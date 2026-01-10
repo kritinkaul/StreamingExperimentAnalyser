@@ -1,6 +1,6 @@
 # Architecture
 
-Data pipeline that transforms listening events into experiment results.
+End-to-end A/B testing pipeline for music streaming data.
 
 ## Flow
 

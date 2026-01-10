@@ -16,7 +16,7 @@ from analysis.config import (
     DUCKDB_PATH, EXPERIMENT_ID, PRIMARY_METRIC,
     GUARDRAIL_METRICS, SIGNIFICANCE_LEVEL,
     GUARDRAIL_SIGNIFICANCE, MIN_EFFECT_SIZE,
-    MAX_GUARDRAIL_DEGRADATION
+    MAX_GUARDRAIL_DEGRADATION, CONFIDENCE_LEVEL
 )
 from analysis.utils import perform_ttest, format_p_value, interpret_effect_size
 
@@ -139,6 +139,7 @@ class ExperimentAnalyzer:
     
     def _print_metric_results(self, result: Dict):
         """Pretty print metric analysis results."""
+        ci_percent = int(CONFIDENCE_LEVEL * 100)
         print(f"\n{result['metric_name'].replace('_', ' ').title()}")
         print("-" * 40)
         print(f"  Control Mean:     {result['control_mean']:.4f}")
@@ -147,17 +148,17 @@ class ExperimentAnalyzer:
         print(f"  Absolute Diff:    {result['variant_mean'] - result['control_mean']:+.4f}")
         print(f"  p-value:          {format_p_value(result['p_value'])}")
         print(f"  Cohen's d:        {result['cohens_d']:.3f} ({interpret_effect_size(result['cohens_d'])})")
-        print(f"  95% CI Control:   [{result['control_ci_lower']:.4f}, {result['control_ci_upper']:.4f}]")
-        print(f"  95% CI Variant:   [{result['variant_ci_lower']:.4f}, {result['variant_ci_upper']:.4f}]")
+        print(f"  {ci_percent}% CI Control:   [{result['control_ci_lower']:.4f}, {result['control_ci_upper']:.4f}]")
+        print(f"  {ci_percent}% CI Variant:   [{result['variant_ci_lower']:.4f}, {result['variant_ci_upper']:.4f}]")
         
         if result['is_primary']:
-            sig_marker = "✓" if result['is_significant'] else "✗"
-            threshold_marker = "✓" if result['meets_threshold'] else "✗"
-            print(f"  Significant:      {sig_marker} (p < {SIGNIFICANCE_LEVEL})")
-            print(f"  Meets Threshold:  {threshold_marker} (|lift| > {MIN_EFFECT_SIZE*100}%)")
+            sig_status = "YES" if result['is_significant'] else "NO"
+            threshold_status = "YES" if result['meets_threshold'] else "NO"
+            print(f"  Significant:      {sig_status} (p < {SIGNIFICANCE_LEVEL})")
+            print(f"  Meets Threshold:  {threshold_status} (|lift| > {MIN_EFFECT_SIZE*100}%)")
         else:
-            degraded_marker = "⚠️ YES" if result['is_degraded'] else "✓ NO"
-            print(f"  Degraded:         {degraded_marker}")
+            degraded_status = "YES" if result['is_degraded'] else "NO"
+            print(f"  Degraded:         {degraded_status}")
     
     def make_ship_decision(self) -> Dict:
         """Make Ship/Don't Ship recommendation."""
@@ -181,7 +182,7 @@ class ExperimentAnalyzer:
         
         # Make decision
         if primary_success and not degraded_guardrails:
-            decision = "SHIP ✅"
+            decision = "SHIP"
             confidence = "HIGH"
             reasoning = [
                 f"Primary metric ({PRIMARY_METRIC}) shows significant positive lift of {primary['relative_lift']*100:.2f}%",
@@ -190,7 +191,7 @@ class ExperimentAnalyzer:
                 "No guardrail metrics degraded"
             ]
         elif primary_success and degraded_guardrails:
-            decision = "DON'T SHIP ⚠️"
+            decision = "DON'T SHIP"
             confidence = "MEDIUM"
             reasoning = [
                 f"Primary metric shows positive lift of {primary['relative_lift']*100:.2f}%",
@@ -198,14 +199,14 @@ class ExperimentAnalyzer:
                 "Risk of harming user experience outweighs primary metric gains"
             ]
         elif primary['is_significant'] and primary['relative_lift'] < 0:
-            decision = "DON'T SHIP ❌"
+            decision = "DON'T SHIP"
             confidence = "HIGH"
             reasoning = [
                 f"Primary metric shows NEGATIVE lift of {primary['relative_lift']*100:.2f}%",
                 "Variant is worse than control"
             ]
         else:
-            decision = "DON'T SHIP 🔍"
+            decision = "DON'T SHIP"
             confidence = "MEDIUM"
             reasoning = [
                 f"Primary metric lift ({primary['relative_lift']*100:.2f}%) is not statistically significant",
@@ -265,8 +266,8 @@ def main():
     
     # Check if database exists
     if not DUCKDB_PATH.exists():
-        print(f"\n⚠️  Database not found at: {DUCKDB_PATH}")
-        print("\n🛑 HUMAN STEP REQUIRED:")
+        print(f"\nWARNING: Database not found at: {DUCKDB_PATH}")
+        print("\nSetup required:")
         print("   1. Run: python scripts/load_data.py")
         print("   2. Run: cd dbt_project && dbt seed && dbt run")
         print("   3. Then run this script again")
@@ -289,7 +290,7 @@ def main():
     finally:
         analyzer.close()
     
-    print("\n✓ Analysis complete!")
+    print("\nAnalysis complete!")
     print("\nNext step:")
     print("  streamlit run dashboard/app.py")
 

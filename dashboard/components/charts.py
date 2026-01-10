@@ -5,6 +5,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from typing import Dict, List
+import sys
+from pathlib import Path
+
+# Add project root to path to import config
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.append(str(PROJECT_ROOT))
+from analysis.config import CONFIDENCE_LEVEL
 
 
 def plot_metric_comparison(metrics_data: Dict):
@@ -96,8 +103,9 @@ def plot_confidence_intervals(metrics_data: Dict, metric_name: str):
     ))
     
     # Update layout
+    ci_percent = int(CONFIDENCE_LEVEL * 100)
     fig.update_layout(
-        title=f"95% Confidence Intervals: {metric_name.replace('_', ' ').title()}",
+        title=f"{ci_percent}% Confidence Intervals: {metric_name.replace('_', ' ').title()}",
         xaxis_title="Group",
         yaxis_title="Metric Value",
         showlegend=False,

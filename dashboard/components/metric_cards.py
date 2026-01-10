@@ -28,9 +28,9 @@ def display_metric_card(
     with st.container():
         # Header
         if is_primary:
-            st.markdown(f"### 🎯 {metric_name} (Primary)")
+            st.markdown(f"### {metric_name} (Primary)")
         else:
-            st.markdown(f"### 📊 {metric_name}")
+            st.markdown(f"### {metric_name}")
         
         # Metrics in columns
         col1, col2, col3 = st.columns(3)
@@ -51,10 +51,10 @@ def display_metric_card(
             )
         
         with col3:
-            sig_emoji = "✅" if is_significant else "❌"
+            sig_status = "YES" if is_significant else "NO"
             st.metric(
                 label="Significant?",
-                value=sig_emoji,
+                value=sig_status,
                 help=f"p-value: {p_value:.4f}"
             )
         
@@ -68,7 +68,7 @@ def display_summary_metrics(metrics_data: Dict):
     Args:
         metrics_data: Dictionary of metric results
     """
-    st.markdown("## 📈 Key Metrics Summary")
+    st.markdown("## Key Metrics Summary")
     
     cols = st.columns(4)
     

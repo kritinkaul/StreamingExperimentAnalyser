@@ -45,7 +45,7 @@ def load_lastfm_data() -> pd.DataFrame:
     df['album'] = ''  # Add empty album column for compatibility
     df = df[['user_id', 'timestamp', 'artist', 'album', 'track']]
     
-    print(f"\n✓ Loaded {len(df):,} scrobbles")
+    print(f"\nLoaded {len(df):,} scrobbles")
     print(f"  Unique users:  {df['user_id'].nunique():,}")
     print(f"  Date range:    {df['timestamp'].min()} to {df['timestamp'].max()}")
     
@@ -70,7 +70,7 @@ def create_database_schema(conn: duckdb.DuckDBPyConnection):
         )
     """)
     
-    print("✓ Schema created")
+    print("Schema created")
 
 
 def load_data_to_duckdb(df: pd.DataFrame):
@@ -98,16 +98,16 @@ def load_data_to_duckdb(df: pd.DataFrame):
     # Get row count
     row_count = conn.execute("SELECT COUNT(*) FROM raw.scrobbles_raw").fetchone()[0]
     
-    print(f"✓ Loaded {row_count:,} records into DuckDB")
+    print(f"Loaded {row_count:,} records into DuckDB")
     
     # Create indices for performance
     print("\nCreating indices...")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_user ON raw.scrobbles_raw(user_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON raw.scrobbles_raw(timestamp)")
-    print("✓ Indices created")
+    print("Indices created")
     
     # Show sample stats
-    print("\n📊 Dataset Statistics:")
+    print("\nDataset Statistics:")
     stats = conn.execute("""
         SELECT 
             COUNT(DISTINCT user_id) as unique_users,
@@ -126,7 +126,7 @@ def load_data_to_duckdb(df: pd.DataFrame):
     print(f"  Unique tracks:    {stats['unique_tracks'].iloc[0]:,}")
     
     conn.close()
-    print(f"\n✓ Database created at: {DUCKDB_PATH}")
+    print(f"\nDatabase created at: {DUCKDB_PATH}")
 
 
 def main():
@@ -145,7 +145,7 @@ def main():
     load_data_to_duckdb(df)
     
     print("\n" + "=" * 60)
-    print("✓ Data ingestion complete!")
+    print("Data ingestion complete!")
     print("=" * 60)
     print("\nNext steps:")
     print("  1. cd dbt_project")

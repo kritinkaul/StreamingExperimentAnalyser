@@ -2,6 +2,13 @@
 
 import streamlit as st
 from typing import Dict, List
+import sys
+from pathlib import Path
+
+# Add project root to path to import config
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.append(str(PROJECT_ROOT))
+from analysis.config import CONFIDENCE_LEVEL
 
 
 def display_ship_decision(decision_data: Dict):
@@ -16,21 +23,24 @@ def display_ship_decision(decision_data: Dict):
     reasoning = decision_data['reasoning']
     
     # Determine styling based on decision
-    if 'SHIP ✅' in decision:
+    if decision == 'SHIP':
         bg_color = "#d4edda"
         border_color = "#c3e6cb"
         text_color = "#155724"
-        icon = "✅"
-    elif 'DON\'T SHIP ❌' in decision:
-        bg_color = "#f8d7da"
-        border_color = "#f5c6cb"
-        text_color = "#721c24"
-        icon = "❌"
-    else:  # DON'T SHIP with warning
+    elif 'DON\'T SHIP' in decision or 'DON'T SHIP' in decision:
+        # Check if there are degraded guardrails (MEDIUM confidence) vs no success (HIGH confidence)
+        if confidence == "MEDIUM":
+            bg_color = "#fff3cd"
+            border_color = "#ffeeba"
+            text_color = "#856404"
+        else:
+            bg_color = "#f8d7da"
+            border_color = "#f5c6cb"
+            text_color = "#721c24"
+    else:
         bg_color = "#fff3cd"
         border_color = "#ffeeba"
         text_color = "#856404"
-        icon = "⚠️"
     
     # Display decision box
     st.markdown(f"""
@@ -43,7 +53,7 @@ def display_ship_decision(decision_data: Dict):
             margin: 20px 0;
         ">
             <h1 style="color: {text_color}; margin: 0;">
-                {icon} {decision}
+                {decision}
             </h1>
             <h3 style="color: {text_color}; margin-top: 10px;">
                 Confidence: {confidence}
@@ -52,12 +62,12 @@ def display_ship_decision(decision_data: Dict):
     """, unsafe_allow_html=True)
     
     # Display reasoning
-    st.markdown("### 📋 Reasoning")
+    st.markdown("### Reasoning")
     for i, reason in enumerate(reasoning, 1):
         st.markdown(f"{i}. {reason}")
     
     # Display key stats
-    st.markdown("### 📊 Key Statistics")
+    st.markdown("### Key Statistics")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -76,10 +86,10 @@ def display_ship_decision(decision_data: Dict):
     
     # Degraded guardrails
     if decision_data['degraded_guardrails']:
-        st.error("⚠️ **Degraded Guardrails:** " + 
+        st.error("**Degraded Guardrails:** " + 
                 ", ".join(decision_data['degraded_guardrails']))
     else:
-        st.success("✅ **All guardrail metrics passed**")
+        st.success("**All guardrail metrics passed**")
 
 
 def display_experiment_info(experiment_id: str, config: Dict):
@@ -90,7 +100,7 @@ def display_experiment_info(experiment_id: str, config: Dict):
         experiment_id: Experiment identifier
         config: Experiment configuration dictionary
     """
-    st.markdown("## 🧪 Experiment Information")
+    st.markdown("## Experiment Information")
     
     col1, col2 = st.columns(2)
     
@@ -112,8 +122,9 @@ def display_experiment_info(experiment_id: str, config: Dict):
 
 def display_statistical_notes():
     """Display notes about statistical methodology."""
-    with st.expander("ℹ️ Statistical Methodology"):
-        st.markdown("""
+    ci_percent = int(CONFIDENCE_LEVEL * 100)
+    with st.expander("Statistical Methodology"):
+        st.markdown(f"""
         ### Statistical Testing Approach
         
         **Hypothesis Testing:**
@@ -139,6 +150,6 @@ def display_statistical_notes():
         - Any guardrail metric significantly degraded
         
         **Confidence Intervals:**
-        - 95% confidence intervals displayed for all metrics
+        - {ci_percent}% confidence intervals displayed for all metrics
         - Non-overlapping CIs indicate likely significant difference
         """)

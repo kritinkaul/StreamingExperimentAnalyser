@@ -13,6 +13,7 @@ SIGNIFICANCE_LEVEL = 0.05  # p-value threshold for primary metrics
 GUARDRAIL_SIGNIFICANCE = 0.10  # More lenient for guardrails
 MIN_EFFECT_SIZE = 0.02  # Minimum 2% lift for primary metric
 MAX_GUARDRAIL_DEGRADATION = 0.01  # Max 1% degradation for guardrails
+CONFIDENCE_LEVEL = 0.95  # Confidence interval level (e.g., 0.95 for 95% CI)
 
 # Experiment parameters
 EXPERIMENT_ID = "exp_001"

@@ -29,12 +29,14 @@ data/*.duckdb
 # IDE
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 .DS_Store
 
 # Streamlit
 .streamlit/secrets.toml
+streamlit.log
 
 # Jupyter
 .ipynb_checkpoints/

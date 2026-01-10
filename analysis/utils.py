@@ -3,6 +3,13 @@
 import numpy as np
 from scipy import stats
 from typing import Dict, Tuple
+import sys
+from pathlib import Path
+
+# Add project root to path to import config
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.append(str(PROJECT_ROOT))
+from analysis.config import CONFIDENCE_LEVEL
 
 
 def calculate_cohens_d(group1: np.ndarray, group2: np.ndarray) -> float:
@@ -22,8 +29,8 @@ def perform_ttest(control: np.ndarray, variant: np.ndarray) -> Dict[str, float]:
     control_se = stats.sem(control)
     variant_se = stats.sem(variant)
     
-    control_ci = stats.t.interval(0.95, len(control) - 1, loc=control_mean, scale=control_se)
-    variant_ci = stats.t.interval(0.95, len(variant) - 1, loc=variant_mean, scale=variant_se)
+    control_ci = stats.t.interval(CONFIDENCE_LEVEL, len(control) - 1, loc=control_mean, scale=control_se)
+    variant_ci = stats.t.interval(CONFIDENCE_LEVEL, len(variant) - 1, loc=variant_mean, scale=variant_se)
     
     cohens_d = calculate_cohens_d(control, variant)
     relative_lift = (variant_mean - control_mean) / control_mean if control_mean != 0 else 0
